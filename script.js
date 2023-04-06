@@ -1,55 +1,171 @@
-const pianokeys = document.querySelectorAll(".piano-keys .key"),
-volumeSlider = document.querySelector(".volume-slider input"),
-keysChecker = document.querySelector(".key-checkbox input");
-let allKeys= [],
- audio = new Audio("tunes/a.wav");
+const fileInput = document.querySelector(".file-input"),
+filterOptions  = document.querySelectorAll(".filter button"),
+filterName = document.querySelector(".filter-info .name"),
+filterValue = document.querySelector(".filter-info .value"),
 
-const playTune = (key)=>
-{
-    audio.src = `tunes/${key}.wav`;
-    audio.play();
+filterSlider = document.querySelector(".slider input"),
+rotateOptions  = document.querySelectorAll(".rotate button"),
 
-    const clickedKey = document.querySelector(`[data-key="${key}"]`);
-    clickedKey.classList.add("active");
 
-    setTimeout(()=>{
-        clickedKey.classList.remove("active");
-    },150)
- 
-}
+previewImg  = document.querySelector(".preview-img img"),
+resetFilterBtn  = document.querySelector(".reset-filter"),
+chooseImgBtn  = document.querySelector(".choose-img"),
+saveImageBtn  = document.querySelector(".save-img");
 
-pianokeys.forEach(key =>
-    {
-        allKeys.push(key.dataset.key);
-        // calling playtune function with passing the data-value as an argument 
-        key.addEventListener("click", ()=>playTune(key.dataset.key))
-      
+
+
+let brightness =100 , saturation = 100 , inversion = 0, grayscale = 0;
+
+let rotate = 0 , flipHorizontal = 1 , flipVertical = 1;
+
+ const applyFilters = ()=>{
+    previewImg.style.transform = `rotate(${rotate}deg) scale(${flipHorizontal} , ${flipVertical} )`;
+    previewImg.style.filter = `brightness(${brightness}%) saturate(${saturation}%) invert(${inversion}%) grayscale(${grayscale}%) `;
+
+ }
+
+const loadImage = ()=>{
+    let file = fileInput.files[0];// getting user select file 
+    if(!file) return ; // return if user hasn't selct file
+
+    previewImg.src = URL.createObjectURL(file); // passing file url as previw img 
+
+    previewImg.addEventListener("load" , ()=>{
+        resetFilterBtn.click();
+        document.querySelector(".container").classList.remove("disable");
 
     });
 
-    // volume handle function
+}
 
-    const handleVolume = (e)=>{
-         audio.volume = e.target.value;     // passing the range slider value as an audio volume 
-    }
+filterOptions.forEach(option=>{
+    option.addEventListener("click" , ()=>{
+         document.querySelector(".filter .active").classList.remove("active");
+          option.classList.add("active");
+          filterName.innerText = option.innerText;
 
-    //keys show hode buttons function 
+         if(option.id === "brightness")
+         {
+                filterSlider.max = "200";
+                filterSlider.value = "brightness";
+                filterValue.innerText = `${brightness}%`;
+         }
+         else if(option.id === "saturation")
+         {
+                 filterSlider.max = "200";
+                filterSlider.value = "saturation";
+                filterValue.innerText = `${saturation}%`;
+         }
+         else if(option.id === "invertion")
+         {      
+                 filterSlider.max = "100";
+                filterSlider.value = "inversion";
+                filterValue.innerText = `${inversion}%`;
+         }
+         else 
+         {
+                filterSlider.max = "100";
+                 filterSlider.value = "grayscale";
+                filterValue.innerText = `${grayscale}%`;
 
-    const showHidekeys=(e)=>
-    {
-            pianokeys.forEach(key=>key.classList.toggle("hide"));
-            
-    }
+         }
+         
+    }); 
 
-    const pressedKey = (e) =>
-    {
-        // if the press key is all key is int he all key array , only call the playTune function 
-        if(allKeys.includes(e.key))
-        playTune(e.key);
+});
 
-    }
-    keysChecker.addEventListener("click",showHidekeys);
-   volumeSlider.addEventListener("input",handleVolume);
-   document.addEventListener("keydown", pressedKey);
+const updateFilter = ()=>{
+    filterValue.innerText = `${filterSlider.value}%`;
+     const selectedFilter = document.querySelector(".filter .active");// getting filter btn 
 
+     if(selectedFilter.id === "brightness")
+     {
+        brightness = filterSlider.value;
+
+     }
+     else if(selectedFilter.id === "saturation")
+     {
+        saturation = filterSlider.value;
+     }
+     else if(selectedFilter.id === "inversion")
+     {
+        inversion = filterSlider.value;
+     }else{
+        grayscale = filterSlider.value;
+     }
+     applyFilters();
+}
+
+ // work on rotate button or flip btn 
+
+rotateOptions.forEach(option =>{
+
+    option.addEventListener("click" , ()=>{
+        if(option.id === "left")
+        {
+           rotate-=90;
+        } 
+        else if(option.id === "right")
+        {
+           rotate+=90;
+        }
+        else if(option.id === "horizontal")
+        {
+           flipHorizontal = flipHorizontal === 1 ? -1 : 1 ;
+        }
+        else
+        {
+
+            flipVertical  = flipVertical  === 1 ? -1 : 1 ;
+        }
+
+        applyFilters();
+
+
+    });
+});
+// working on reset filter btn 
+
+ const resetFilter=()=>
+  {
+    brightness =100 ; saturation = 100 ; inversion =0;  grayscale = 0;
+
+      rotate = 0 ; flipHorizontal = 1 ; flipVertical = 1;
+      filterOptions[0].click();
+      applyFilters();
+        
+ }
+
+ const saveImage = () =>
+ {
     
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = previewImg.naturalWidth;
+    canvas.height = previewImg.naturalHeight;
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    if(rotate!==0)
+    {
+        ctx.rotate(rotate * Math.PI / 180);
+    }
+    ctx.filter =  `brightness(${brightness}%) saturate(${saturation}%) invert(${inversion}%) grayscale(${grayscale}%) `;
+    ctx.scale(flipHorizontal  , flipVertical);
+    ctx.drawImage(previewImg ,-canvas.width / 2 , -canvas.height / 2 , canvas.width, canvas.height);
+    
+    const link = document.createElement("a");
+
+    link.download = "image.jpg";
+    link.href = canvas.toDataURL();
+    link.click();
+
+
+
+}
+
+fileInput.addEventListener("change" , loadImage);
+filterSlider.addEventListener("input", updateFilter);
+resetFilterBtn.addEventListener("click", resetFilter);
+saveImageBtn.addEventListener("click", saveImage);
+
+chooseImgBtn.addEventListener("click" , ()=>fileInput.click());
+
